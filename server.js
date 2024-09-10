@@ -18,7 +18,8 @@ let timerData = {
   isBreak: false
 };
 
-// Emitir estado del temporizador a todos los clientes en la sala
+let users = {}; // Para llevar el registro de los usuarios en la sala
+
 const emitTimerData = (room) => {
   io.to(room).emit('timer_update', timerData);
 };
@@ -30,13 +31,17 @@ io.on('connection', (socket) => {
   socket.on('join_room', (room) => {
     socket.join(room);
     console.log(`Cliente ${socket.id} se unió a la sala ${room}`);
+
+    // Registrar usuario
+    users[socket.id] = { id: socket.id, name: `User ${socket.id}` };
+    io.to(room).emit('user_joined', users);
+
     socket.emit('timer_update', timerData);
   });
 
   // Actualizar el estado del temporizador
   socket.on('update_timer', (data) => {
     timerData = { ...timerData, ...data };
-    // Emitir la actualización a todos los clientes en la sala
     const rooms = Object.keys(socket.rooms).filter(room => room !== socket.id);
     rooms.forEach(room => emitTimerData(room));
   });
@@ -44,6 +49,11 @@ io.on('connection', (socket) => {
   // Manejar desconexiones
   socket.on('disconnect', () => {
     console.log('Cliente desconectado:', socket.id);
+    // Eliminar usuario de la sala y notificar a los demás
+    for (const room of Object.keys(socket.rooms)) {
+      delete users[socket.id];
+      io.to(room).emit('user_left', users);
+    }
   });
 });
 
