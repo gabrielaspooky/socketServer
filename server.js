@@ -46,13 +46,25 @@ io.on('connection', (socket) => {
     rooms.forEach(room => emitTimerData(room));
   });
 
+  // Abandonar sala de manera explícita
+  socket.on('leave_room', (room) => {
+    socket.leave(room);
+    console.log(`Cliente ${socket.id} abandonó la sala ${room}`);
+
+    // Eliminar usuario de la sala
+    delete users[socket.id];
+    io.to(room).emit('user_left', users); // Notificar a los demás usuarios
+  });
+
   // Manejar desconexiones
   socket.on('disconnect', () => {
     console.log('Cliente desconectado:', socket.id);
-    // Eliminar usuario de la sala y notificar a los demás
+    // Eliminar usuario de todas las salas a las que estaba unido y notificar
     for (const room of Object.keys(socket.rooms)) {
-      delete users[socket.id];
-      io.to(room).emit('user_left', users);
+      if (room !== socket.id) { // Evitar que elimine del propio socket id (que no es una sala)
+        delete users[socket.id];
+        io.to(room).emit('user_left', users);
+      }
     }
   });
 });
