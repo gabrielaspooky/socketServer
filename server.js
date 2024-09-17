@@ -56,7 +56,7 @@ io.on('connection', (socket) => {
 
     // Eliminar usuario de la sala
     delete users[socket.id];
-    io.to(room).emit('user_left', users); // Notificar a los demás usuarios
+    io.to(room).emit('user_left', userWhoLeft); // Notificar a los demás usuarios
   });
 
   // Manejar desconexiones
