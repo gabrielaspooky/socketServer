@@ -51,6 +51,9 @@ io.on('connection', (socket) => {
     socket.leave(room);
     console.log(`Cliente ${socket.id} abandonó la sala ${room}`);
 
+    // Obtener datos del usuario que abandona antes de eliminarlo
+    const userWhoLeft = users[socket.id];
+
     // Eliminar usuario de la sala
     delete users[socket.id];
     io.to(room).emit('user_left', users); // Notificar a los demás usuarios
@@ -59,11 +62,14 @@ io.on('connection', (socket) => {
   // Manejar desconexiones
   socket.on('disconnect', () => {
     console.log('Cliente desconectado:', socket.id);
+
+      // Obtener datos del usuario que se desconectó antes de eliminarlo
+      const userWhoLeft = users[socket.id];
     // Eliminar usuario de todas las salas a las que estaba unido y notificar
     for (const room of Object.keys(socket.rooms)) {
-      if (room !== socket.id) { // Evitar que elimine del propio socket id (que no es una sala)
+      if (room !== socket.id && userWhoLeft) { // Evitar que elimine del propio socket id (que no es una sala)
         delete users[socket.id];
-        io.to(room).emit('user_left', users);
+        io.to(room).emit('user_left', userWhoLeft);
       }
     }
   });
