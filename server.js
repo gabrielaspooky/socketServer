@@ -19,6 +19,7 @@ let timerData = {
 };
 
 let users = {}; // Para llevar el registro de los usuarios en la sala
+let nextUserId = 1; // Contador para asignar IDs secuenciales
 
 const emitTimerData = (room) => {
   io.to(room).emit('timer_update', timerData);
@@ -32,8 +33,11 @@ io.on('connection', (socket) => {
     socket.join(room);
     console.log(`Cliente ${socket.id} se unió a la sala ${room}`);
 
+    // Asignar ID secuencial
+    const userId = nextUserId++;
+    
     // Registrar usuario
-    users[socket.id] = { id: socket.id, name: `User ${socket.id}` };
+    users[socket.id] = { id: userId, name: `User ${userId}` };
     io.to(room).emit('user_joined', users);
 
     socket.emit('timer_update', timerData);
