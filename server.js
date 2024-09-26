@@ -29,16 +29,16 @@ io.on('connection', (socket) => {
   console.log('Nuevo cliente conectado:', socket.id);
 
   // Unirse a una sala
-  socket.on('join_room', (room) => {
+  socket.on('join_room', ({ room, username }) => {
     socket.join(room);
-    console.log(`Cliente ${socket.id} se unió a la sala ${room}`);
+    console.log(`Cliente ${socket.id} se unió a la sala ${room} como ${username}`);
 
     // Asignar ID secuencial
     const userId = nextUserId++;
     
-    // Registrar usuario
-    users[socket.id] = { id: userId, name: `User ${userId}` };
-    io.to(room).emit('user_joined', users);
+    // Registrar usuario con el nombre proporcionado
+    users[socket.id] = { id: userId, username: username || `Usuario ${userId}`, room: room };
+    io.to(room).emit('user_joined', Object.values(users).filter(user => user.room === room));
 
     socket.emit('timer_update', timerData);
   });
@@ -70,12 +70,10 @@ io.on('connection', (socket) => {
     // Obtener datos del usuario que se desconectó antes de eliminarlo
     const userWhoLeft = users[socket.id];
 
-    // Eliminar usuario de todas las salas a las que estaba unido y notificar
-    for (const room of Object.keys(socket.rooms)) {
-      if (room !== socket.id) { // Evitar que elimine del propio socket id (que no es una sala)
-        delete users[socket.id];
-        io.to(room).emit('user_left', userWhoLeft);
-      }
+    if (userWhoLeft) {
+      // Notificar a los usuarios de la sala que este usuario se ha desconectado
+      io.to(userWhoLeft.room).emit('user_left', userWhoLeft);
+      delete users[socket.id];
     }
   });
 });
